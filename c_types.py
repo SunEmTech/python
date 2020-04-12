@@ -36,13 +36,22 @@ class ExampleNetworkPacket(NetStruct):
 
     @property
     def data(self):
-        return memoryview(self._data)
+        return bytes(memoryview(self._data))
 
     @data.setter
     def data(self, indata):
         self.datalen = len(indata)
         self._data = (self._data._type_ * len(indata))()
-        memmove(self._data, indata, len(indata))    
+        memmove(self._data, indata, len(indata))
+        
+    def __new__(self, sb=None):
+        if sb:
+            l = sizeof(self)
+            self.data = sb[l:]
+            return self.from_buffer_copy(sb)
+            #return super(self.__class__, self).__new__(self, sb)
+        else:
+            return BigEndianStructure.__new__(self)
 
     def raw(self):
         return super(self.__class__, self).raw() + self.data
@@ -54,4 +63,9 @@ enp.ns.flags[1] = 1
 enp.ns.val2 = 0xff
 enp.data = b"Hello world!"
 
-print(enp.raw())
+
+raw_data = enp.raw()
+print(raw_data)
+
+new = ExampleNetworkPacket(raw_data)
+print(new.data)
